@@ -210,3 +210,4 @@ __marimo__/
 .python-version
 
 pyproject.toml
+test.py
