@@ -23,7 +23,15 @@ def image_to_gemspark(image_path, output_path, size=1):
     if image is None:
         raise ValueError("Image not found or unable to load.")
     
-
+def closest_color_euclidean(input_color, color_list):
+        min_distance = float('inf')
+        closest_color = None
+        for color in color_list:
+            distance = sum((ic - cc) ** 2 for ic, cc in zip(input_color, color)) ** 0.5
+            if distance < min_distance:
+                min_distance = distance
+                closest_color = color
+        return closest_color
 
 
 # image_to_gemspark('TerrariaColors.png', 'output.png')
