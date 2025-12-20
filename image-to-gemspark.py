@@ -20,6 +20,7 @@ def get_gemspark_colors():
 def image_to_gemspark(image_path, output_path, size=1):
     # Load the images
     image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+    image = cv2.cvtCol
     image = cv2.resize(image, (image.shape[1]//size, image.shape[0]//size))
 
     # Check if the image was loaded successfully
