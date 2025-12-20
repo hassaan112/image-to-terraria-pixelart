@@ -19,8 +19,7 @@ def get_gemspark_colors():
 
 def image_to_gemspark(image_path, output_path, size=1):
     # Load the images
-    image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-    image = cv2.cvtCol
+    image = cv2.imread(image_path) # load image from path
     image = cv2.resize(image, (image.shape[1]//size, image.shape[0]//size))
 
     # Check if the image was loaded successfully
@@ -72,4 +71,5 @@ def closest_color_euclidean_weighted(input_color, color_list):
             closest_color = color
     return closest_color
 
-image_to_gemspark('references/nazuna2.png', 'output.png')
+# image_to_gemspark('references/nazuna2.png', 'output.png')
+print(get_gemspark_colors())
