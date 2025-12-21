@@ -94,25 +94,74 @@ def image_to_gemspark_LAB(image_path, output_path, size_multiplier=None, height=
     cv2.waitKey(0)
     cv2.imwrite(output_path, res)
     
-# def closest_color_euclidean(input_color, color_list):
-#     min_distance = float('inf')
-#     closest_color = None
-#     for color in color_list:
-#         distance = sum((ic - cc) ** 2 for ic, cc in zip(input_color, color)) ** 0.5
-#         if distance < min_distance:
-#             min_distance = distance
-#             closest_color = color
-#     return closest_color
+def image_to_gemspark_HSV(image_path, output_path, size_multiplier=None, height=None, width=None, resize=None):
+    # Load the images
+    image = cv2.imread(image_path) # load image from path
 
-# def closest_color_euclidean_weighted(input_color, color_list):
-#     min_distance = float('inf')
-#     closest_color = None
-#     weightR, weightG, weightB = 2, 4, 3
-#     for color in color_list:
-#         distance = (weightR*((input_color[0]-color[0])**2) + weightG*((input_color[1]-color[1])**2) + weightB*((input_color[2]-color[2])**2)) ** 0.5
-#         if distance < min_distance:
-#             min_distance = distance
-#             closest_color = color
-#     return closest_color
+    # Check if the image was loaded successfully
+    if image is None:
+        raise ValueError("Image not found or unable to load.")
 
-image_to_gemspark('stuff/ado.jpg', 'output.png', size_multiplier=0.125)
+    if size_multiplier:
+        image = cv2.resize(image, (int(image.shape[1]*size_multiplier), int(image.shape[0]*size_multiplier))) # resize by multiplier if specified
+    elif height and width:
+        image = cv2.resize(image, (width, height))
+
+    img_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float32) 
+
+    # Normalize S and V to 0-1 range for consistent weighting
+    h_rad = img_hsv[:, :, 0] * (2 * np.pi / 180.0) # Convert Hue to Radians (0 to 2pi)
+    s = img_hsv[:, :, 1] / 255.0
+    v = img_hsv[:, :, 2] / 255.0
+
+    # This fixes the circular Hue problem
+    # S_FACTOR: Controls how wide the cylinder is.
+    # Higher number = Saturation is MORE important.
+    S_FACTOR = 1.7
+
+    img_x = (s * S_FACTOR) * np.cos(h_rad)
+    img_y = (s * S_FACTOR) * np.sin(h_rad)
+
+    # V_FACTOR: Controls how tall the cylinder is.
+    # Higher number = Brightness is MORE important.
+    V_FACTOR = 0.7
+
+    img_z = v * V_FACTOR
+
+    img_projected = np.dstack((img_x, img_y, img_z))
+
+    palette = np.array(get_gemspark_colors(), dtype=np.uint8).reshape(1, -1, 3)
+    palette_hsv = cv2.cvtColor(palette, cv2.COLOR_BGR2HSV).astype(np.float32)
+
+    p_h_rad = palette_hsv[:, :, 0] * (2 * np.pi / 180.0)
+    p_s = palette_hsv[:, :, 1] / 255.0
+    p_v = palette_hsv[:, :, 2] / 255.0
+    
+    p_x = p_s * np.cos(p_h_rad)
+    p_y = p_s * np.sin(p_h_rad)
+    p_z = p_v
+
+    palette_projected = np.dstack((p_x, p_y, p_z)).reshape(1, 1, -1, 3)
+
+    diff = img_projected[:, :, np.newaxis, :] - palette_projected
+    dist_sq = np.sum(diff**2, axis=-1)  ** 0.5
+
+    indices = np.argmin(dist_sq, axis=2)
+    palette_bgr_flat = np.array(get_gemspark_colors(), dtype=np.uint8)
+    res = palette_bgr_flat[indices].astype(np.uint8)
+
+    if resize == True:
+        height, width = res.shape[:2]
+        factor = 1080 / height 
+        print(width, height, factor)
+        if height > 1080:
+            res = cv2.resize(res, (width*factor, height*factor), interpolation=cv2.INTER_AREA)
+        else:
+            res = cv2.resize(res, (width*factor, height*factor), interpolation=cv2.INTER_CUBIC)
+        
+
+    cv2.imshow("Preview", res)
+    cv2.waitKey(0)
+    cv2.imwrite(output_path, res)
+
+image_to_gemspark_HSV('stuff/image.png', 'output.png', size_multiplier=0.5)
